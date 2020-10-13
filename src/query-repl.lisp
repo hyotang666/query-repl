@@ -58,7 +58,10 @@
 
 (defun query-repl ()
   (loop (multiple-value-call
-            (lambda (x) (print x *query-io*) (force-output *query-io*))
+            (lambda (&rest args)
+              (dolist (arg args)
+                (print arg *query-io*)
+                (force-output *query-io*)))
           (query-eval (query-read)))))
 
 (defmacro query-case (query &body clauses)
