@@ -4,11 +4,16 @@
   :version
   "0.0.0"
   :depends-on
-  nil
+  (
+   "portable-condition-system"
+   )
   :pathname
   "src/"
   :components
-  ((:file "query-repl")))
+  ((:file "query-repl"))
+  :author "SATO Shinichi"
+  :license "MIT"
+  :description "REPL for user query.")
 
 ;;; These forms below are added by JINGOH.GENERATOR.
 ;; Ensure in ASDF for pretty printings.
