@@ -2,7 +2,7 @@
 (in-package :asdf)
 (defsystem "query-repl"
   :version
-  "0.1.1"
+  "0.1.2"
   :depends-on
   (
    "portable-condition-system"

@@ -28,7 +28,7 @@
             (pcs:invoke-restart-interactively (car restarts)))
            (otherwise
             (progn
-             (warn "~@<~S is ambiguous:~2I~:@_~{~A~^~:@_~}~:>" exp
+             (warn "~S is ambiguous:~2I~:@_~{~A~^~:@_~}" exp
                    (mapcar #'pcs:restart-name restarts))
              (return-from query-eval (values)))))))))
   (let ((results
