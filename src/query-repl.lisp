@@ -64,7 +64,16 @@
                 (force-output *query-io*)))
           (query-eval (query-read)))))
 
-(defmacro query-case (query &body clauses)
+(defmacro query-case (&whole whole query &body clauses)
+  (check-bnf:check-bnf (:whole whole)
+    ((query check-bnf:expression))
+    (((clause+ clauses) (name lambda-list restart-option* body*))
+     (name symbol)
+     (lambda-list (lambda-var*))
+     (lambda-var (or symbol list))
+     (restart-option* restart-option-key check-bnf:expression)
+     (restart-option-key (member :test :interactive :report))
+     (body check-bnf:expression)))
   `(pcs:restart-case (progn ,query (force-output *query-io*) (query-repl))
      ,@clauses))
 

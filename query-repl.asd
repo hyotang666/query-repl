@@ -2,10 +2,11 @@
 (in-package :asdf)
 (defsystem "query-repl"
   :version
-  "0.1.2"
+  "0.1.3"
   :depends-on
   (
    "portable-condition-system"
+   "check-bnf" ; BNF like syntax checker.
    )
   :pathname
   "src/"
