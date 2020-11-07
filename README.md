@@ -48,10 +48,28 @@ Input>> "hoge"
 "hoge"
 *
 ```
+### `*QUERY-EVAL*`
+If you do not need the full power of REPL, you can bind `*QUERY-EVAL*` with `NIL`.
+In such cases, `QUERY-REPL` acts as echo REPL.
 
-## Alternatives.
-If you does not need full power of REPL.
-* [prompt-for](https://github.com/hyotang666/prompt-for)
+```lisp
+* (let (*query-eval*)
+    (query-case (write-line "Works like echo." *query-io*)
+      (one () :report "One" 1)))
+Works like echo.
+
+  0: [ONE] One
+> (+ 1 2 3)
+
+(+ 1 2 3)
+  0: [ONE] One
+> 0
+1
+```
+*NOTE*
+
+Still read time evaluation works.
+You may need to bind `CL:*READ-EVAL*` with `NIL`.
 
 ## From developer
 
