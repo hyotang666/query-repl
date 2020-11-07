@@ -17,7 +17,7 @@
        (let ((restart (nth exp restarts)))
          (when restart
            (pcs:invoke-restart-interactively restart))))
-      (keyword
+      (symbol
        (let ((restarts
               (loop :for restart :in restarts
                     :when (uiop:string-prefix-p exp (pcs:restart-name restart))
