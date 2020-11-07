@@ -12,6 +12,8 @@
 
 (defparameter *query-eval* t)
 
+(declaim (type boolean *query-eval*))
+
 (defun query-eval (exp)
   (let ((restarts
          (pcs:compute-restarts (load-time-value (make-condition 'query) t))))
