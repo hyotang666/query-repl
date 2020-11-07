@@ -3,11 +3,14 @@
 (defpackage :query-repl
   (:use :cl)
   (:export ;;;; Main api
-           #:query-case))
+           #:query-case
+           #:*query-eval*))
 
 (in-package :query-repl)
 
 (define-condition query () ())
+
+(defparameter *query-eval* t)
 
 (defun query-eval (exp)
   (let ((restarts
@@ -34,7 +37,9 @@
   (let ((results
          (multiple-value-list
           (let ((- exp))
-            (eval exp)))))
+            (if *query-eval*
+                (eval exp)
+                exp)))))
     (shiftf /// // / results)
     (shiftf *** ** * (car results))
     (shiftf +++ ++ + exp)
