@@ -50,7 +50,7 @@ Input>> "hoge"
 ```
 ### `*QUERY-EVAL*`
 If you do not need the full power of REPL, you can bind `*QUERY-EVAL*` with `NIL`.
-In such cases, `QUERY-REPL` acts as echo REPL.
+In such cases, `QUERY-REPL` acts as echo REPL, and `CL:*READ-EVAL*` is bound by `NIL` automatically.
 
 ```lisp
 * (let (*query-eval*)
@@ -63,14 +63,49 @@ Works like echo.
 
 (+ 1 2 3)
   0: [ONE] One
+
+;; Reader error is ignored.
+> #.(+ 1 2 3)                                                                                                                                                                                                                         [5/1843]
+WARNING:
+   Ignore: can't read #. while *READ-EVAL* is NIL
+
+             Stream: #<SYNONYM-STREAM :SYMBOL *TERMINAL-IO* {10000385B3}>
+
+NIL
+  0: [ONE] One
+> )
+WARNING:
+   Ignore: unmatched close parenthesis
+
+             Stream: #<SYNONYM-STREAM :SYMBOL *TERMINAL-IO* {10000385B3}>
+
+NIL
+  0: [ONE] One
+> no-such-package:symbol
+WARNING:
+   Ignore: Package NO-SUCH-PACKAGE does not exist.
+
+             Stream: #<SYNONYM-STREAM :SYMBOL *TERMINAL-IO* {10000385B3}>
+
+NIL
+  0: [ONE] One
+
+;; Ctl-C is also ignored.
+> WARNING: Ignore: Interactive interrupt at #x7F31187D3CF9.
+
+NIL
+  0: [ONE] One
+
+;; Ctl-D is also ignored.
+> WARNING:
+   Ignore: end of file on #<SB-SYS:FD-STREAM for "the terminal" {1001578A53}>
+
+NIL
+  0: [ONE] One
+
 > 0
 1
 ```
-*NOTE*
-
-Still read time evaluation works.
-You may need to bind `CL:*READ-EVAL*` with `NIL`.
-
 ## From developer
 
 ### Product's goal

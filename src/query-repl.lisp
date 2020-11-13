@@ -61,7 +61,13 @@
                         (pcs:restart-name restart) restart)))
     (format *query-io* "~%> ")
     (force-output *query-io*)
-    (read)))
+    (if *query-eval*
+        (read)
+        (handler-case
+            (let (*read-eval*)
+              (read))
+          ((or reader-error serious-condition) (condition)
+            (warn "Ignore: ~A" condition))))))
 
 (defun query-repl ()
   (loop (multiple-value-call
