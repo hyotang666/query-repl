@@ -65,7 +65,7 @@ Works like echo.
   0: [ONE] One
 
 ;; Reader error is ignored.
-> #.(+ 1 2 3)                                                                                                                                                                                                                         [5/1843]
+> #.(+ 1 2 3)
 WARNING:
    Ignore: can't read #. while *READ-EVAL* is NIL
 
