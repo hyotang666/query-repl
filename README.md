@@ -1,4 +1,4 @@
-# QUERY-REPL 0.0.0
+# QUERY-REPL 2.0.0
 ## What is this?
 REPL for user query.
 
@@ -16,6 +16,7 @@ It is not an exceptional situation.
 We should not use debugger.
 
 ## Usage
+### `QUERY-CASE`
 The syntax is almost same with `cl:restart-case` except the first argument.
 First argument should print query message.
 The return value of the first argument is discarded.
@@ -106,6 +107,19 @@ NIL
 > 0
 1
 ```
+### `SELECT`
+When selection is dynamic values, you can use `SELECT`.
+
+```lisp
+* (select (list 1 'symbol #'car))
+
+  0: [SELECT] 1
+  1: [SELECT] SYMBOL
+  2: [SELECT] #<FUNCTION CAR>
+> 2
+#<FUNCTION CAR>
+```
+
 ## From developer
 
 ### Product's goal
