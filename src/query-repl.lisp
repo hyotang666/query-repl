@@ -4,6 +4,7 @@
   (:use :cl)
   (:export ;;;; Main api
            #:query-case
+           #:select
            #:*query-eval*))
 
 (in-package :query-repl)
@@ -127,3 +128,20 @@
           :finally (return (list* pre keys list)))))
 
 (set-pprint-dispatch '(cons (member query-case)) 'pprint-query-case)
+
+(defun select (list)
+  (labels ((tester (condition)
+             (typep condition 'query))
+           (reporter (elt)
+             (lambda (s) (format s "~S" elt)))
+           (returner (elt)
+             (lambda () (return-from select elt)))
+           (rec (list)
+             (if (endp list)
+                 (query-repl)
+                 (pcs:restart-bind ((select (returner (car list))
+                                            :test-function #'tester
+                                            :report-function (reporter
+                                                               (car list))))
+                   (rec (cdr list))))))
+    (rec (reverse list))))
