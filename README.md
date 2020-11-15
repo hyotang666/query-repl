@@ -1,4 +1,4 @@
-# QUERY-REPL 2.0.0
+# QUERY-REPL 3.0.0
 ## What is this?
 REPL for user query.
 
@@ -118,6 +118,124 @@ When selection is dynamic values, you can use `SELECT`.
   2: [SELECT] #<FUNCTION CAR>
 > 2
 #<FUNCTION CAR>
+```
+
+### `PAGED-SELECT`
+If selection is big, `PAGED-SELECT` may helps you.
+
+```lisp
+* (paged-select (loop :for i :below 20 :collect i))
+
+  0: [SELECT] #:NEXT
+  1: [SELECT] 0
+  2: [SELECT] 1
+  3: [SELECT] 2
+  4: [SELECT] 3
+  5: [SELECT] 4
+  6: [SELECT] 5
+  7: [SELECT] 6
+  8: [SELECT] 7
+  9: [SELECT] 8
+> 0
+
+  0: [SELECT] #:NEXT
+  1: [SELECT] #:PREV
+  2: [SELECT] 9
+  3: [SELECT] 10
+  4: [SELECT] 11
+  5: [SELECT] 12
+  6: [SELECT] 13
+  7: [SELECT] 14
+  8: [SELECT] 15
+  9: [SELECT] 16
+> 5
+12
+*
+```
+#### &KEY MAX
+To specify max selection num, use the keyword parameter `:MAX` (the default is 10).
+
+##### NOTE
+The selection includes `NEXT` and/or `PREV`.
+
+```lisp
+* (paged-select (loop :for i :below 20 :collect i)
+                :max 5)
+
+  0: [SELECT] #:NEXT
+  1: [SELECT] 0
+  2: [SELECT] 1
+  3: [SELECT] 2
+  4: [SELECT] 3
+>
+```
+#### &KEY KEY
+When keyword parameter `:KEY` is specified, such function is applied to each element of selection.
+
+##### NOTE
+The `:KEY` function is applied only to printed selection.
+If the user selects from the first page, the rest elements are never applied.
+
+```lisp
+* (paged-select (loop :for i :below 20 :collect i)
+                :key (lambda (x) (princ x) (force-output) x))
+012345678               ; <--- The function applied only first page elements.
+  0: [SELECT] #:NEXT
+  1: [SELECT] 0
+  2: [SELECT] 1
+  3: [SELECT] 2
+  4: [SELECT] 3
+  5: [SELECT] 4
+  6: [SELECT] 5
+  7: [SELECT] 6
+  8: [SELECT] 7
+  9: [SELECT] 8
+> 0                     ; <--- Choose next page.
+910111213141516         ; <--- The function applied only this page elements.
+  0: [SELECT] #:NEXT
+  1: [SELECT] #:PREV
+  2: [SELECT] 9
+  3: [SELECT] 10
+  4: [SELECT] 11
+  5: [SELECT] 12
+  6: [SELECT] 13
+  7: [SELECT] 14
+  8: [SELECT] 15
+  9: [SELECT] 16
+> 1                     ; <--- Choose previous page.
+                        ; <--- The function is not applied.
+  0: [SELECT] #:NEXT
+  1: [SELECT] 0
+  2: [SELECT] 1
+  3: [SELECT] 2
+  4: [SELECT] 3
+  5: [SELECT] 4
+  6: [SELECT] 5
+  7: [SELECT] 6
+  8: [SELECT] 7
+  9: [SELECT] 8
+> 0
+
+  0: [SELECT] #:NEXT
+  1: [SELECT] #:PREV
+  2: [SELECT] 9
+  3: [SELECT] 10
+  4: [SELECT] 11
+  5: [SELECT] 12
+  6: [SELECT] 13
+  7: [SELECT] 14
+  8: [SELECT] 15
+  9: [SELECT] 16
+> 0
+171819
+  0: [SELECT] #:PREV
+  1: [SELECT] 17
+  2: [SELECT] 18
+  3: [SELECT] 19
+> 1
+
+17
+*
 ```
 
 ## From developer
