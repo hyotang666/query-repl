@@ -178,63 +178,63 @@ If the user selects from the first page, the rest elements are never applied.
 
 ```lisp
 * (paged-select (loop :for i :below 20 :collect i)
-                :key (lambda (x) (princ x) (force-output) x))
+                :key (lambda (x) (princ x) (force-output) (princ-to-string x)))
 012345678               ; <--- The function applied only first page elements.
   0: [SELECT] #:NEXT
-  1: [SELECT] 0
-  2: [SELECT] 1
-  3: [SELECT] 2
-  4: [SELECT] 3
-  5: [SELECT] 4
-  6: [SELECT] 5
-  7: [SELECT] 6
-  8: [SELECT] 7
-  9: [SELECT] 8
+  1: [SELECT] "0"
+  2: [SELECT] "1"
+  3: [SELECT] "2"
+  4: [SELECT] "3"
+  5: [SELECT] "4"
+  6: [SELECT] "5"
+  7: [SELECT] "6"
+  8: [SELECT] "7"
+  9: [SELECT] "8"
 > 0                     ; <--- Choose next page.
 910111213141516         ; <--- The function applied only this page elements.
   0: [SELECT] #:NEXT
   1: [SELECT] #:PREV
-  2: [SELECT] 9
-  3: [SELECT] 10
-  4: [SELECT] 11
-  5: [SELECT] 12
-  6: [SELECT] 13
-  7: [SELECT] 14
-  8: [SELECT] 15
-  9: [SELECT] 16
+  2: [SELECT] "9"
+  3: [SELECT] "10"
+  4: [SELECT] "11"
+  5: [SELECT] "12"
+  6: [SELECT] "13"
+  7: [SELECT] "14"
+  8: [SELECT] "15"
+  9: [SELECT] "16"
 > 1                     ; <--- Choose previous page.
                         ; <--- The function is not applied.
   0: [SELECT] #:NEXT
-  1: [SELECT] 0
-  2: [SELECT] 1
-  3: [SELECT] 2
-  4: [SELECT] 3
-  5: [SELECT] 4
-  6: [SELECT] 5
-  7: [SELECT] 6
-  8: [SELECT] 7
-  9: [SELECT] 8
+  1: [SELECT] "0"
+  2: [SELECT] "1"
+  3: [SELECT] "2"
+  4: [SELECT] "3"
+  5: [SELECT] "4"
+  6: [SELECT] "5"
+  7: [SELECT] "6"
+  8: [SELECT] "7"
+  9: [SELECT] "8"
 > 0
 
   0: [SELECT] #:NEXT
   1: [SELECT] #:PREV
-  2: [SELECT] 9
-  3: [SELECT] 10
-  4: [SELECT] 11
-  5: [SELECT] 12
-  6: [SELECT] 13
-  7: [SELECT] 14
-  8: [SELECT] 15
-  9: [SELECT] 16
+  2: [SELECT] "9"
+  3: [SELECT] "10"
+  4: [SELECT] "11"
+  5: [SELECT] "12"
+  6: [SELECT] "13"
+  7: [SELECT] "14"
+  8: [SELECT] "15"
+  9: [SELECT] "16"
 > 0
 171819
   0: [SELECT] #:PREV
-  1: [SELECT] 17
-  2: [SELECT] 18
-  3: [SELECT] 19
+  1: [SELECT] "17"
+  2: [SELECT] "18"
+  3: [SELECT] "19"
 > 1
 
-17
+"17"
 *
 ```
 
