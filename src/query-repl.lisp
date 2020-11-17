@@ -155,52 +155,45 @@
     (return-from paged-select list))
   (do ((vector (coerce list 'vector))
        (hash-table (make-hash-table))
-       (next '#:next)
-       (prev '#:prev)
+       (tag-next '#:next)
+       (tag-prev '#:prev)
        (length (length list))
        (index 0))
       (nil)
-    (flet ((query (start end cont)
-             (loop :for i :upfrom start :below end
-                   :for (value exist?)
-                        := (multiple-value-list (gethash i hash-table))
-                   :if exist?
-                     :collect value :into contents
-                   :else
-                     :collect (setf (gethash i hash-table)
-                                      (funcall key (aref vector i)))
-                       :into contents
-                   :finally (funcall cont contents)))
-           (prev-index (index)
-             (let ((new (- index (- max 2))))
-               (if (= 1 new)
-                   0
-                   new))))
+    (unless index
+      (error "Internal error: Index is NIL."))
+    (labels ((query (start end cont)
+               (loop :for i :upfrom start :below end
+                     :for (value exist?)
+                          := (multiple-value-list (gethash i hash-table))
+                     :if exist?
+                       :collect value :into contents
+                     :else
+                       :collect (setf (gethash i hash-table)
+                                        (funcall key (aref vector i)))
+                         :into contents
+                     :finally (funcall cont contents)))
+             (prev-index (index)
+               (let ((new (- index (- max 2))))
+                 (if (= 1 new)
+                     0
+                     new)))
+             (finaler (&key next tags)
+               (lambda (contents)
+                 (let ((selected (select (nconc tags contents))))
+                   (cond
+                     ((eq tag-prev selected) (setf index (prev-index index)))
+                     ((eq tag-next selected) (setf index next))
+                     (t (return selected)))))))
       (if (zerop index)
           (if (<= length max)
-              (query index length
-                     (lambda (contents) (return (select contents))))
+              (query index length (finaler))
               (query index (1- max)
-                     (lambda (contents)
-                       (let ((selected (select (cons next contents))))
-                         (if (eq next selected)
-                             (setf index (1- max))
-                             (return selected))))))
+                     (finaler :next (1- max) :tags (list tag-next))))
           (if (<= index length)
               (if (<= (- length index) (1- max))
-                  (query index length
-                         (lambda (contents)
-                           (let ((selected (select (cons prev contents))))
-                             (if (eq prev selected)
-                                 (setf index (prev-index index))
-                                 (return selected)))))
+                  (query index length (finaler :tags (list tag-prev)))
                   (query index (+ index (- max 2))
-                         (lambda (contents)
-                           (let ((selected (select (list* next prev contents))))
-                             (cond
-                               ((eq prev selected)
-                                (setf index (prev-index index)))
-                               ((eq next selected)
-                                (setf index (+ index (- max 2))))
-                               (t (return selected)))))))
+                         (finaler :next (+ index (- max 2))
+                                  :tags (list tag-next tag-prev))))
               (error "Internal error. Index over the length."))))))
