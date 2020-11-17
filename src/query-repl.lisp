@@ -49,7 +49,7 @@
     (shiftf +++ ++ + exp)
     (values-list results)))
 
-(defun query-read (&optional (*standard-input* *query-io*))
+(defun query-prompt (&optional (*standard-output* *query-io*))
   (let ((restarts
          (pcs:compute-restarts (load-time-value (make-condition 'query) t))))
     (when restarts
@@ -62,17 +62,20 @@
             :do (format *query-io* "~%~3D: [~VA] ~A" i max
                         (pcs:restart-name restart) restart)))
     (format *query-io* "~%> ")
-    (force-output *query-io*)
-    (if *query-eval*
-        (read)
-        (handler-case
-            (let (*read-eval*)
-              (read))
-          ((or reader-error serious-condition) (condition)
-            (warn "Ignore: ~A" condition))))))
+    (force-output *query-io*)))
+
+(defun query-read (&optional (*standard-input* *query-io*))
+  (if *query-eval*
+      (read)
+      (handler-case
+          (let (*read-eval*)
+            (read))
+        ((or reader-error serious-condition) (condition)
+          (warn "Ignore: ~A" condition)))))
 
 (defun query-repl ()
-  (loop (multiple-value-call
+  (loop (query-prompt)
+        (multiple-value-call
             (lambda (&rest args)
               (dolist (arg args)
                 (print arg *query-io*)
