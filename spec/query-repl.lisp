@@ -47,3 +47,17 @@ input> "
 
 ;;;; Exceptional-Situations:
 
+(requirements-about *QUERY-EVAL* :doc-type variable)
+
+;;;; Description:
+
+;;;; Value type is BOOLEAN
+#? *QUERY-EVAL* :be-the boolean
+
+; Initial value is `T`
+
+;;;; Affected By:
+; QUERY-READ, QUERY-EVAL
+
+;;;; Notes:
+
