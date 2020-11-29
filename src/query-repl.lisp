@@ -6,7 +6,14 @@
            #:query-case
            #:select
            #:paged-select
-           #:*query-eval*))
+           #:*query-eval*)
+  (:export ;;;; Underlying helpers.
+           #:*prompt*
+           #:query-prompt
+           #:query-read
+           #:query-eval
+           #:query-repl
+           #:query-bind))
 
 (in-package :query-repl)
 
