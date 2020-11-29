@@ -90,7 +90,13 @@
               (dolist (arg args)
                 (print arg *query-io*)
                 (force-output *query-io*)))
-          (query-eval (query-read)))))
+          (handler-case (query-read)
+            (condition (condition)
+              (if *query-eval*
+                  (error condition)
+                  (progn (warn (princ-to-string condition)) (values))))
+            (:no-error (read)
+              (query-eval read))))))
 
 (defmacro query-bind (binds &body body)
   (flet ((<make-selection-form> (bind)

@@ -2,7 +2,7 @@
 (in-package :asdf)
 (defsystem "query-repl"
   :version
-  "4.0.2"
+  "4.0.3"
   :depends-on
   (
    "check-bnf" ; BNF like syntax checker.
