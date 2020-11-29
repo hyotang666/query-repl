@@ -14,6 +14,8 @@
 
 (defparameter *query-eval* t)
 
+(defparameter *prompt* ">")
+
 (declaim (type boolean *query-eval*))
 
 (defun query-eval (exp)
@@ -61,7 +63,7 @@
             :for restart :in restarts
             :do (format *query-io* "~%~3D: [~VA] ~A" i max
                         (pcs:restart-name restart) restart)))
-    (format *query-io* "~%> ")
+    (format *query-io* "~%~A " *prompt*)
     (force-output *query-io*)))
 
 (defun query-read (&optional (*standard-input* *query-io*))
