@@ -2,11 +2,6 @@
 
 (defpackage :query-repl
   (:use :cl)
-  (:shadowing-import-from :portable-condition-system
-                          #:invoke-restart-interactively
-                          #:restart-name
-                          #:restart-case)
-  (:shadow compute-restarts)
   (:export ;;;; Main api
            #:query-case
            #:select
@@ -15,7 +10,12 @@
 
 (in-package :query-repl)
 
-(define-condition query () ())
+(defstruct selection
+  (name nil :type symbol :read-only t)
+  (report-function (error "Required") :type function :read-only t)
+  (interactive-function (error "Required") :type function :read-only t))
+
+(defvar *selections*)
 
 (defparameter *query-eval* t)
 
@@ -23,29 +23,28 @@
 
 (declaim (type boolean *query-eval*))
 
-(defun compute-restarts ()
-  (remove-if (lambda (condition) (not (typep condition 'query)))
-             (cl:compute-restarts (load-time-value (make-condition 'query) t))))
-
 (defun query-eval (exp)
-  (let ((restarts (compute-restarts)))
+  (let ((selections *selections*))
     (typecase exp
       (integer
-       (let ((restart (nth exp restarts)))
-         (when restart
-           (invoke-restart-interactively restart))))
+       (let ((selection (nth exp selections)))
+         (when selection
+           (throw 'select
+             (funcall (selection-interactive-function selection))))))
       (symbol
-       (let ((restarts
-              (loop :for restart :in restarts
-                    :when (uiop:string-prefix-p exp (restart-name restart))
-                      :collect restart)))
-         (typecase restarts
+       (let ((selections
+              (loop :for selection :in selections
+                    :when (uiop:string-prefix-p exp (selection-name selection))
+                      :collect selection)))
+         (typecase selections
            (null) ; do nothing.
-           ((cons restart null) (invoke-restart-interactively (car restarts)))
+           ((cons selection null)
+            (throw 'select
+              (funcall (selection-interactive-function (car selections)))))
            (otherwise
             (progn
              (warn "~S is ambiguous:~2I~:@_~{~A~^~:@_~}" exp
-                   (mapcar #'restart-name restarts))
+                   (mapcar #'selection-name selections))
              (return-from query-eval (values)))))))))
   (let ((results
          (multiple-value-list
@@ -59,16 +58,17 @@
     (values-list results)))
 
 (defun query-prompt (&optional (*standard-output* *query-io*))
-  (let ((restarts (compute-restarts)))
-    (when restarts
+  (let ((selections *selections*))
+    (when selections
       (loop :with max
-                  := (reduce #'max restarts
+                  := (reduce #'max selections
                              :key (lambda (x)
-                                    (length (string (restart-name x)))))
+                                    (length (string (selection-name x)))))
             :for i :upfrom 0
-            :for restart :in restarts
-            :do (format t "~%~3D: [~VA] ~A" i max (restart-name restart)
-                        restart)))
+            :for selection :in selections
+            :do (format t "~%~3D: [~VA] " i max (selection-name selection))
+                (funcall (selection-report-function selection)
+                         *standard-output*)))
     (format t "~%~A " *prompt*)
     (force-output t)))
 
@@ -82,13 +82,14 @@
           (warn "Ignore: ~A" condition)))))
 
 (defun query-repl ()
-  (loop (query-prompt)
-        (multiple-value-call
-            (lambda (&rest args)
-              (dolist (arg args)
-                (print arg *query-io*)
-                (force-output *query-io*)))
-          (query-eval (query-read)))))
+  (catch 'select
+    (loop (query-prompt)
+          (multiple-value-call
+              (lambda (&rest args)
+                (dolist (arg args)
+                  (print arg *query-io*)
+                  (force-output *query-io*)))
+            (query-eval (query-read))))))
 
 (defmacro query-case (&whole whole query &body clauses)
   (check-bnf:check-bnf (:whole whole)
@@ -96,10 +97,42 @@
     (((clause+ clauses) (name check-bnf:<lambda-list> restart-option* body*))
      (name symbol)
      (restart-option* restart-option-key check-bnf:expression)
-     (restart-option-key (member :test :interactive :report))
+     (restart-option-key (member :interactive :report))
      (body check-bnf:expression)))
-  `(restart-case (progn ,query (force-output *query-io*) (query-repl))
-     ,@clauses))
+  `(let ((*selections* (list ,@(mapcar #'<make-selection-form> clauses))))
+     ,query
+     (force-output *query-io*)
+     (query-repl)))
+
+(defun <make-selection-form> (clause)
+  (destructuring-bind
+      (name lambda-list &rest body)
+      clause
+    (do* ((list body (cdr body))
+          (first (car list) (car list))
+          (reporter)
+          (reader))
+         ((not (find first '(:report :interactive) :test #'eq))
+          `(make-selection :name ',name
+                           :report-function ,(typecase reporter
+                                               (string
+                                                `(lambda (s)
+                                                   (format s ,reporter)))
+                                               (null
+                                                `(lambda (s)
+                                                   (format s "~A" ',name)))
+                                               (otherwise `#',reporter))
+                           :interactive-function ,(if reader
+                                                      `(lambda ()
+                                                         (apply
+                                                           (lambda ,lambda-list
+                                                             ,@list)
+                                                           (,reader)))
+                                                      `(lambda ,lambda-list
+                                                         ,@list))))
+      (when (find first '(:report :interarctive))
+        (setf reporter (cadr list))
+        (setf list (cddr list))))))
 
 (defun pprint-query-case (stream exp)
   (funcall
@@ -142,20 +175,15 @@
 (set-pprint-dispatch '(cons (member query-case)) 'pprint-query-case)
 
 (defun select (list)
-  (labels ((tester (condition)
-             (typep condition 'query))
-           (reporter (elt)
-             (lambda (s) (format s "~S" elt)))
-           (returner (elt)
-             (lambda () (return-from select elt)))
-           (rec (list)
-             (if (endp list)
-                 (query-repl)
-                 (restart-bind ((select (returner (car list))
-                                        :test-function #'tester
-                                        :report-function (reporter (car list))))
-                   (rec (cdr list))))))
-    (rec (reverse list))))
+  (let ((*selections*
+         (mapcar
+           (lambda (value)
+             (make-selection :name 'select
+                             :report-function (lambda (s)
+                                                (format s "~S" value))
+                             :interactive-function (lambda () value)))
+           list)))
+    (query-repl)))
 
 (defun paged-select (list &key (max 10) (key #'identity))
   (unless list

@@ -5,7 +5,6 @@
   "3.2.3"
   :depends-on
   (
-   "portable-condition-system"
    "check-bnf" ; BNF like syntax checker.
    )
   :pathname
