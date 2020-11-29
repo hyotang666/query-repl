@@ -15,7 +15,7 @@
   (report-function (error "Required") :type function :read-only t)
   (interactive-function (error "Required") :type function :read-only t))
 
-(defvar *selections*)
+(defvar *selections* nil)
 
 (defparameter *query-eval* t)
 
