@@ -17,3 +17,33 @@
 
 ;;;; Notes:
 
+(requirements-about QUERY-PROMPT :doc-type function)
+
+;;;; Description:
+
+#+syntax (QUERY-PROMPT &optional (*standard-output* *query-io*)) ; => result
+
+;;;; Arguments and Values:
+
+; *standard-output* := Output stream, otherwise error.
+#?(query-prompt "not-stream") :signals type-error
+
+; result := NULL
+#?(query-prompt) => NIL
+,:stream nil
+
+;;;; Affected By:
+; *PROMPT*
+#?(let ((*prompt* "input>"))
+    (query-prompt))
+:outputs "
+input> "
+,:stream *query-io*
+
+;;;; Side-Effects:
+; Outputs to `STREAM`.
+
+;;;; Notes:
+
+;;;; Exceptional-Situations:
+
