@@ -2,6 +2,11 @@
 
 (defpackage :query-repl
   (:use :cl)
+  (:shadowing-import-from :portable-condition-system
+                          #:compute-restarts
+                          #:invoke-restart-interactively
+                          #:restart-name
+                          #:restart-case)
   (:export ;;;; Main api
            #:query-case
            #:select
@@ -20,25 +25,24 @@
 
 (defun query-eval (exp)
   (let ((restarts
-         (pcs:compute-restarts (load-time-value (make-condition 'query) t))))
+         (compute-restarts (load-time-value (make-condition 'query) t))))
     (typecase exp
       (integer
        (let ((restart (nth exp restarts)))
          (when restart
-           (pcs:invoke-restart-interactively restart))))
+           (invoke-restart-interactively restart))))
       (symbol
        (let ((restarts
               (loop :for restart :in restarts
-                    :when (uiop:string-prefix-p exp (pcs:restart-name restart))
+                    :when (uiop:string-prefix-p exp (restart-name restart))
                       :collect restart)))
          (typecase restarts
            (null) ; do nothing.
-           ((cons pcs:restart null)
-            (pcs:invoke-restart-interactively (car restarts)))
+           ((cons restart null) (invoke-restart-interactively (car restarts)))
            (otherwise
             (progn
              (warn "~S is ambiguous:~2I~:@_~{~A~^~:@_~}" exp
-                   (mapcar #'pcs:restart-name restarts))
+                   (mapcar #'restart-name restarts))
              (return-from query-eval (values)))))))))
   (let ((results
          (multiple-value-list
@@ -53,15 +57,15 @@
 
 (defun query-prompt (&optional (*standard-output* *query-io*))
   (let ((restarts
-         (pcs:compute-restarts (load-time-value (make-condition 'query) t))))
+         (compute-restarts (load-time-value (make-condition 'query) t))))
     (when restarts
       (loop :with max
                   := (reduce #'max restarts
                              :key (lambda (x)
-                                    (length (string (pcs:restart-name x)))))
+                                    (length (string (restart-name x)))))
             :for i :upfrom 0
             :for restart :in restarts
-            :do (format t "~%~3D: [~VA] ~A" i max (pcs:restart-name restart)
+            :do (format t "~%~3D: [~VA] ~A" i max (restart-name restart)
                         restart)))
     (format t "~%~A " *prompt*)
     (force-output t)))
@@ -92,7 +96,7 @@
      (restart-option* restart-option-key check-bnf:expression)
      (restart-option-key (member :test :interactive :report))
      (body check-bnf:expression)))
-  `(pcs:restart-case (progn ,query (force-output *query-io*) (query-repl))
+  `(restart-case (progn ,query (force-output *query-io*) (query-repl))
      ,@clauses))
 
 (defun pprint-query-case (stream exp)
@@ -145,10 +149,9 @@
            (rec (list)
              (if (endp list)
                  (query-repl)
-                 (pcs:restart-bind ((select (returner (car list))
-                                            :test-function #'tester
-                                            :report-function (reporter
-                                                               (car list))))
+                 (restart-bind ((select (returner (car list))
+                                        :test-function #'tester
+                                        :report-function (reporter (car list))))
                    (rec (cdr list))))))
     (rec (reverse list))))
 
