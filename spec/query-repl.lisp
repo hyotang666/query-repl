@@ -147,3 +147,74 @@ input> "
 
 ;;;; Exceptional-Situations:
 
+(requirements-about QUERY-BIND :doc-type function)
+
+;;;; Description:
+
+#+syntax (QUERY-BIND (&rest bind*) &body body) ; => result
+
+;;;; Arguments and Values:
+
+; bind := (query-name function &key report-function interactive-function)
+; query-name := symbol, otherwise an implementation dependent condition.
+#?(query-bind (("not symbol" (lambda () :dummy)))) :signals condition
+; Not evaluated.
+#?(query-bind (((intern "Not evaluated") (lambda () :dummy)))) :signals condition
+; function := function, otherwise an implementation dependent condition.
+#?(query-bind ((name "not function"))) :signals condition
+#?(query-bind ((name 'no-such-function))) :signals condition
+; Evaluated.
+#?(query-bind ((name (coerce 'list 'function)))) :invokes-debugger not
+; If the argument FUNCTION does not transfer control flow, EXP is returned.
+#?(query-bind ((name #'list))
+    (query-eval 0))
+=> 0
+; report-function := function, otherwise an implementation dependent conditioin.
+#?(query-bind ((name #'list :report-function "not function"))) :signals condition
+; Evaluated.
+#?(query-bind ((name #'list :report-function (coerce #'print 'function))))
+:invokes-debugger not
+; If specified such function should have API as (function (stream)).
+; Specified function is called to print selection report.
+#?(query-bind ((name (lambda () :dummy)
+                 :report-function (lambda (s) (format s "Report"))))
+    (query-prompt))
+:outputs "
+  0: [NAME] Report
+> "
+,:stream *query-io*
+; When NIL (the default), selection name is printed as report.
+#?(query-bind ((name (lambda () :dummy)))
+    (query-prompt))
+:outputs "
+  0: [NAME] NAME
+> "
+,:stream *query-io*
+; interactive-function := function, otherwise an implementation dependent condition.
+#?(query-bind ((name (lambda () :dummy) :interactive-function "not function")))
+:signals condition
+; If specifed, such function should have API as (function () list).
+; Specifed function is called when selection is selected.
+#?(query-bind ((name (lambda (a) a)
+                 :interactive-function (lambda () (list (princ :hoge)))))
+    (query-eval 0))
+:outputs "HOGE"
+; If specified, such functions return value is APPLYed the first argument FUNCTION.
+#?(query-bind ((name #'princ :interactive-function (lambda () (list :a *standard-output*))))
+    (query-eval 0))
+:outputs "A"
+
+; body := implicit PROGN
+
+; result := T.
+
+;;;; Affected By:
+; QUERY-REPL::*SELECTIONS*
+
+;;;; Side-Effects:
+; Modify environment i.e. QUERY-REPL::*SELECTIONS*.
+
+;;;; Notes:
+
+;;;; Exceptional-Situations:
+
