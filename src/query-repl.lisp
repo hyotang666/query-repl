@@ -80,11 +80,8 @@
 (defun query-read (&optional (*standard-input* *query-io*))
   (if *query-eval*
       (read)
-      (handler-case
-          (let (*read-eval*)
-            (read))
-        ((or reader-error serious-condition) (condition)
-          (warn "Ignore: ~A" condition)))))
+      (let (*read-eval*)
+        (read))))
 
 (defun query-repl ()
   (loop (query-prompt)
