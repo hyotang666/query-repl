@@ -61,10 +61,10 @@
                                     (length (string (pcs:restart-name x)))))
             :for i :upfrom 0
             :for restart :in restarts
-            :do (format *query-io* "~%~3D: [~VA] ~A" i max
-                        (pcs:restart-name restart) restart)))
-    (format *query-io* "~%~A " *prompt*)
-    (force-output *query-io*)))
+            :do (format t "~%~3D: [~VA] ~A" i max (pcs:restart-name restart)
+                        restart)))
+    (format t "~%~A " *prompt*)
+    (force-output t)))
 
 (defun query-read (&optional (*standard-input* *query-io*))
   (if *query-eval*
