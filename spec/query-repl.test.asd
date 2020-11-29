@@ -2,7 +2,7 @@
 (in-package :asdf)
 (defsystem "query-repl.test"
   :version
-  "0.6.0"
+  "0.7.0"
   :depends-on
   (:jingoh "query-repl")
   :components

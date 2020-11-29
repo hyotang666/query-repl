@@ -218,3 +218,53 @@ input> "
 
 ;;;; Exceptional-Situations:
 
+(requirements-about QUERY-REPL :doc-type function)
+
+;;;; Description:
+
+#+syntax (QUERY-REPL) ; => result
+
+;;;; Arguments and Values:
+
+; result := T
+
+;;;; Affected By:
+; QUERY-REPL::*SELECTIONS*
+#?(block :block
+         (query-bind ((nil (lambda () (return-from :block 0))))
+           (with-input-from-string (s "0")
+             (let ((*query-io* (make-two-way-stream s *query-io*)))
+               (query-repl)))))
+=> 0
+,:stream nil
+
+; *QUERY-EVAL*
+; When *QUERY-EVAL* is NIL, and meed #. dispatch macro
+; warning is signaled.
+#?(let (*query-eval*)
+    (block :block
+      (query-bind ((nil (lambda () (return-from :block 0))))
+        (with-input-from-string (s "#.1")
+          (let ((*query-io* (make-two-way-stream s *query-io*)))
+            (query-repl))))))
+:signals warning
+; In such case, do next loop.
+#?(let (*query-eval*)
+    (block :block
+      (query-bind ((nil (lambda () (return-from :block 0))))
+        (with-input-from-string (s "#.1 0")
+          (let ((*query-io* (make-two-way-stream s *query-io*)))
+            (query-repl))))))
+=> 0
+,:stream nil
+,:ignore-signals warning
+
+; *READ-EVAL* *READ-BASE* *READ-DEFAULT-FLOAT-FORMAT* *READ-SUPPRESS*
+
+;;;; Side-Effects:
+; io *QUERY-IO*.
+
+;;;; Notes:
+
+;;;; Exceptional-Situations:
+
