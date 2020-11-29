@@ -106,8 +106,10 @@
                                                                :interactive-function)
                                                          `(lambda ()
                                                             (apply ,function
-                                                                   ,(getf rest
-                                                                          :interactive-function)))
+                                                                   (funcall
+                                                                     ,(getf
+                                                                        rest
+                                                                        :interactive-function))))
                                                          function)))))
     `(let ((*selections*
             (list* ,@(mapcar #'<make-selection-form> binds) *selections*)))
