@@ -29,8 +29,7 @@
       (integer
        (let ((selection (nth exp selections)))
          (when selection
-           (throw 'select
-             (funcall (selection-interactive-function selection))))))
+           (funcall (selection-interactive-function selection)))))
       (symbol
        (let ((selections
               (loop :for selection :in selections
@@ -39,8 +38,7 @@
          (typecase selections
            (null) ; do nothing.
            ((cons selection null)
-            (throw 'select
-              (funcall (selection-interactive-function (car selections)))))
+            (funcall (selection-interactive-function (car selections))))
            (otherwise
             (progn
              (warn "~S is ambiguous:~2I~:@_~{~A~^~:@_~}" exp
@@ -82,14 +80,13 @@
           (warn "Ignore: ~A" condition)))))
 
 (defun query-repl ()
-  (catch 'select
-    (loop (query-prompt)
-          (multiple-value-call
-              (lambda (&rest args)
-                (dolist (arg args)
-                  (print arg *query-io*)
-                  (force-output *query-io*)))
-            (query-eval (query-read))))))
+  (loop (query-prompt)
+        (multiple-value-call
+            (lambda (&rest args)
+              (dolist (arg args)
+                (print arg *query-io*)
+                (force-output *query-io*)))
+          (query-eval (query-read)))))
 
 (defmacro query-case (&whole whole query &body clauses)
   (check-bnf:check-bnf (:whole whole)
@@ -99,12 +96,18 @@
      (restart-option* restart-option-key check-bnf:expression)
      (restart-option-key (member :interactive :report))
      (body check-bnf:expression)))
-  `(let ((*selections* (list ,@(mapcar #'<make-selection-form> clauses))))
-     ,query
-     (force-output *query-io*)
-     (query-repl)))
+  (let ((block (gensym "QUERY")))
+    `(block ,block
+       (let ((*selections*
+              (list
+                ,@(mapcar
+                    (lambda (clause) (<make-selection-form> clause block))
+                    clauses))))
+         ,query
+         (force-output *query-io*)
+         (query-repl)))))
 
-(defun <make-selection-form> (clause)
+(defun <make-selection-form> (clause block)
   (destructuring-bind
       (name lambda-list &rest body)
       clause
@@ -124,12 +127,15 @@
                                                (otherwise `#',reporter))
                            :interactive-function ,(if reader
                                                       `(lambda ()
-                                                         (apply
-                                                           (lambda ,lambda-list
-                                                             ,@list)
-                                                           (,reader)))
+                                                         (return-from ,block
+                                                           (apply
+                                                             (lambda
+                                                                 ,lambda-list
+                                                               ,@list)
+                                                             (,reader))))
                                                       `(lambda ,lambda-list
-                                                         ,@list))))
+                                                         (return-from ,block
+                                                           (progn ,@list))))))
       (when (find first '(:report :interarctive))
         (setf reporter (cadr list))
         (setf list (cddr list))))))
@@ -181,7 +187,9 @@
              (make-selection :name 'select
                              :report-function (lambda (s)
                                                 (format s "~S" value))
-                             :interactive-function (lambda () value)))
+                             :interactive-function (lambda ()
+                                                     (return-from select
+                                                       value))))
            list)))
     (query-repl)))
 
