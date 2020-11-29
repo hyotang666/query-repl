@@ -3,10 +3,10 @@
 (defpackage :query-repl
   (:use :cl)
   (:shadowing-import-from :portable-condition-system
-                          #:compute-restarts
                           #:invoke-restart-interactively
                           #:restart-name
                           #:restart-case)
+  (:shadow compute-restarts)
   (:export ;;;; Main api
            #:query-case
            #:select
@@ -23,9 +23,12 @@
 
 (declaim (type boolean *query-eval*))
 
+(defun compute-restarts ()
+  (remove-if (lambda (condition) (not (typep condition 'query)))
+             (cl:compute-restarts (load-time-value (make-condition 'query) t))))
+
 (defun query-eval (exp)
-  (let ((restarts
-         (compute-restarts (load-time-value (make-condition 'query) t))))
+  (let ((restarts (compute-restarts)))
     (typecase exp
       (integer
        (let ((restart (nth exp restarts)))
@@ -56,8 +59,7 @@
     (values-list results)))
 
 (defun query-prompt (&optional (*standard-output* *query-io*))
-  (let ((restarts
-         (compute-restarts (load-time-value (make-condition 'query) t))))
+  (let ((restarts (compute-restarts)))
     (when restarts
       (loop :with max
                   := (reduce #'max restarts
