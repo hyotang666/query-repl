@@ -88,6 +88,27 @@
                 (force-output *query-io*)))
           (query-eval (query-read)))))
 
+(defmacro query-bind (binds &body body)
+  (flet ((<make-selection-form> (bind)
+           (destructuring-bind
+               (name function . rest)
+               bind
+             `(make-selection :name ',name
+                              :report-function ,(or (getf rest
+                                                          :report-function)
+                                                    `(lambda (s)
+                                                       (format s "~A" ',name)))
+                              :interactive-function ,(if (getf rest
+                                                               :interactive-function)
+                                                         `(lambda ()
+                                                            (apply ,function
+                                                                   ,(getf rest
+                                                                          :interactive-function)))
+                                                         function)))))
+    `(let ((*selections*
+            (list* ,@(mapcar #'<make-selection-form> binds) *selections*)))
+       ,@body)))
+
 (defmacro query-case (&whole whole query &body clauses)
   (check-bnf:check-bnf (:whole whole)
     ((query check-bnf:expression))
@@ -98,11 +119,9 @@
      (body check-bnf:expression)))
   (let ((block (gensym "QUERY")))
     `(block ,block
-       (let ((*selections*
-              (list
-                ,@(mapcar
-                    (lambda (clause) (<make-selection-form> clause block))
-                    clauses))))
+       (query-bind ,(mapcar
+                      (lambda (clause) (<make-selection-form> clause block))
+                      clauses)
          ,query
          (force-output *query-io*)
          (query-repl)))))
@@ -116,26 +135,15 @@
           (reporter)
           (reader))
          ((not (find first '(:report :interactive) :test #'eq))
-          `(make-selection :name ',name
-                           :report-function ,(typecase reporter
-                                               (string
-                                                `(lambda (s)
-                                                   (format s ,reporter)))
-                                               (null
-                                                `(lambda (s)
-                                                   (format s "~A" ',name)))
-                                               (otherwise `#',reporter))
-                           :interactive-function ,(if reader
-                                                      `(lambda ()
-                                                         (return-from ,block
-                                                           (apply
-                                                             (lambda
-                                                                 ,lambda-list
-                                                               ,@list)
-                                                             (,reader))))
-                                                      `(lambda ,lambda-list
-                                                         (return-from ,block
-                                                           (progn ,@list))))))
+          `(,name (lambda ,lambda-list (return-from ,block (progn ,@list)))
+            :report-function
+            ,(typecase reporter
+               (string `(lambda (s) (format s ,reporter)))
+               (null `(lambda (s) (format s "~A" ',name)))
+               (otherwise `#',reporter))
+            :interactive-function
+            ,(when reader
+               `(lambda () (,reader)))))
       (when (find first '(:report :interarctive))
         (setf reporter (cadr list))
         (setf list (cddr list))))))
@@ -181,17 +189,15 @@
 (set-pprint-dispatch '(cons (member query-case)) 'pprint-query-case)
 
 (defun select (list)
-  (let ((*selections*
-         (mapcar
-           (lambda (value)
-             (make-selection :name 'select
-                             :report-function (lambda (s)
-                                                (format s "~S" value))
-                             :interactive-function (lambda ()
-                                                     (return-from select
-                                                       value))))
-           list)))
-    (query-repl)))
+  (labels ((rec (list)
+             (if (endp list)
+                 (query-repl)
+                 (query-bind ((select
+                                (lambda () (return-from select (car list)))
+                                :report-function (lambda (s)
+                                                   (format s "~S" (car list)))))
+                   (rec (cdr list))))))
+    (rec (reverse list))))
 
 (defun paged-select (list &key (max 10) (key #'identity))
   (unless list
