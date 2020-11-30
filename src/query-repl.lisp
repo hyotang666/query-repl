@@ -104,20 +104,29 @@
            (destructuring-bind
                (name function . rest)
                bind
-             `(make-selection :name ',name
-                              :report-function ,(or (getf rest
-                                                          :report-function)
-                                                    `(lambda (s)
-                                                       (format s "~A" ',name)))
-                              :interactive-function ,(if (getf rest
-                                                               :interactive-function)
-                                                         `(lambda ()
-                                                            (apply ,function
-                                                                   (funcall
-                                                                     ,(getf
-                                                                        rest
-                                                                        :interactive-function))))
-                                                         function)))))
+             (check-type name symbol)
+             `(let ((function (coerce ,function 'function))
+                    (reporter
+                     (coerce
+                       ,(or (getf rest :report-function)
+                            `(lambda (s) (format s "~A" ',name)))
+                       'function))
+                    (reader
+                     (coerce
+                       ,(if (getf rest :interactive-function)
+                            `(lambda ()
+                               (apply ,function
+                                      (funcall
+                                        ,(getf rest :interactive-function))))
+                            function)
+                       'function)))
+                ;; CLISP needs runtime check.
+                (check-type function function)
+                (check-type reporter function)
+                (check-type reader function)
+                (make-selection :name ',name
+                                :report-function reporter
+                                :interactive-function reader)))))
     `(let ((*selections*
             (list* ,@(mapcar #'<make-selection-form> binds) *selections*)))
        ,@body)))
