@@ -27,7 +27,7 @@
 ;;;; Arguments and Values:
 
 ; *standard-output* := Output stream, otherwise error.
-#?(query-prompt "not-stream") :signals type-error
+#?(query-prompt "not-stream") :signals error
 
 ; result := NULL
 #?(query-prompt) => NIL
