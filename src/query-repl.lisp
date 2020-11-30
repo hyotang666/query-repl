@@ -140,31 +140,35 @@
 
 (defun <make-selection-form> (clause block)
   (let (reporter reader (name (car clause)) (lambda-list (second clause)))
-    (labels ((rec (list)
-               (if (endp list)
-                   (finally list)
-                   (body (car list) (cdr list))))
-             (body (first rest)
-               (case first
-                 ((:report)
-                  (if rest
-                      (progn (setf reporter (car rest)) (rec (cdr rest)))
-                      (finally (cons first rest))))
-                 ((:interactive)
-                  (if rest
-                      (progn (setf reader `#',(car rest)) (rec (cdr rest)))
-                      (finally (cons first rest))))
-                 (otherwise (finally (cons first rest)))))
-             (finally (list)
-               `(,name
-                 (lambda ,lambda-list (return-from ,block (progn ,@list)))
-                 :report-function
-                 ,(typecase reporter
-                    (string `(lambda (s) (format s ,reporter)))
-                    (null `(lambda (s) (format s "~A" ',name)))
-                    (otherwise `#',reporter))
-                 :interactive-function ,reader)))
-      (rec (cddr clause)))))
+    (multiple-value-bind (body decls)
+        (alexandria:parse-body (cddr clause))
+      (labels ((rec (list)
+                 (if (endp list)
+                     (finally list)
+                     (body (car list) (cdr list))))
+               (body (first rest)
+                 (case first
+                   ((:report)
+                    (if rest
+                        (progn (setf reporter (car rest)) (rec (cdr rest)))
+                        (finally (cons first rest))))
+                   ((:interactive)
+                    (if rest
+                        (progn (setf reader `#',(car rest)) (rec (cdr rest)))
+                        (finally (cons first rest))))
+                   (otherwise (finally (cons first rest)))))
+               (finally (list)
+                 `(,name
+                   (lambda ,lambda-list
+                     ,@decls
+                     (return-from ,block (progn ,@list)))
+                   :report-function
+                   ,(typecase reporter
+                      (string `(lambda (s) (format s ,reporter)))
+                      (null `(lambda (s) (format s "~A" ',name)))
+                      (otherwise `#',reporter))
+                   :interactive-function ,reader)))
+        (rec body)))))
 
 (defun pprint-query-case (stream exp)
   (funcall
