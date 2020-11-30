@@ -341,6 +341,57 @@ input> "
 
 ;;;; Exceptional-Situations:
 
+(requirements-about SELECT :doc-type function)
+
+;;;; Description:
+
+#+syntax (SELECT list) ; => result
+
+;;;; Arguments and Values:
+
+; list := list, otherwise error.
+#?(select :atom) :signals type-error
+
+; result := selected elt of the list.
+#?(with-input-from-string (in "0") ; <--- select 0 th.
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (select '(1 2 3))))
+=> 1
+,:stream nil
+
+#?(with-input-from-string (in "1") ; <--- select 1 th.
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (select '(1 2 3))))
+=> 2
+,:stream nil
+
+;;;; Affected By:
+; Dynamic environment of QUERY-REPL::*SELECTIONS*
+#?(with-input-from-string (in "1")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (block :block
+        (query-bind ((test (lambda () (return-from :block :selected))))
+          (select '(:never))))))
+=> :SELECTED
+,:stream nil
+
+;;;; Side-Effects:
+; Input / Output *query-io*
+#?(with-input-from-string (in "1")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (block :block
+        (query-bind ((test (lambda () (return-from :block :selected))))
+          (select '(:never))))))
+:outputs "
+  0: [SELECT] :NEVER
+  1: [TEST  ] TEST
+> "
+,:stream *query-io*
+
+;;;; Notes:
+
+;;;; Exceptional-Situations:
+
 #+syntax (<MAKE-SELECTION-FORM> clause block) ; => result
 
 ;;;; Arguments and Values:
