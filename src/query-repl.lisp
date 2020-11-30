@@ -221,6 +221,10 @@
                    (rec (cdr list))))))
     (rec (reverse list))))
 
+(declaim
+ (ftype (function (list &key (:max (integer 3 *)) (:key (or symbol function))))
+        paged-select))
+
 (defun paged-select (list &key (max 10) (key #'identity))
   (unless list
     (return-from paged-select list))
