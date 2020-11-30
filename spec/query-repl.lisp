@@ -192,7 +192,10 @@ input> "
 > "
 ,:stream *query-io*
 ; interactive-function := function, otherwise an implementation dependent condition.
-#?(query-bind ((name (lambda () :dummy) :interactive-function "not function")))
+#?(with-input-from-string (in "name")
+    (let ((*query-io* (make-two-way-stream in (make-broadcast-stream))))
+      (query-bind ((name (lambda () :dummy) :interactive-function "not function"))
+        (query-repl))))
 :signals condition
 ; If specifed, such function should have API as (function () list).
 ; Specifed function is called when selection is selected.
