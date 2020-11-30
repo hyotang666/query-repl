@@ -392,6 +392,88 @@ input> "
 
 ;;;; Exceptional-Situations:
 
+(requirements-about PAGED-SELECT :doc-type function)
+
+;;;; Description:
+
+#+syntax (PAGED-SELECT list &key (max 10) (key #'identity)) ; => result
+
+;;;; Arguments and Values:
+
+; list := list, otherwise an implementation dependent condition.
+#?(paged-select "not list") :signals condition
+
+; max := (integer 3 *), otherwise an implementation dependent condition.
+#?(paged-select '(1 2 3) :max 1) :signals condition
+#?(paged-select '(1 2 3) :max -1) :signals condition
+#?(paged-select '(1 2 3) :max 10.0) :signals condition
+#?(paged-select '(1 2 3) :max "not integer") :signals condition
+; When specified, output selection has specified size.
+#?(with-input-from-string (in "1")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (paged-select (loop :for i :below 10 :collect i) :max 3)))
+:outputs "
+  0: [SELECT] #:NEXT
+  1: [SELECT] 0
+  2: [SELECT] 1
+> "
+,:stream *query-io*
+
+; key := function designator, otherwise an implementation dependent condition.
+#?(paged-select '(1 2 3) :key "not function") :signals condition
+; If specified, each element is applied.
+#?(with-input-from-string (in "1")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (paged-select '(1 2 3) :key #'princ-to-string)))
+=> "2"
+,:test equal
+,:stream nil
+
+; result := T
+
+;;;; Affected By:
+; Dynamic environment of QUERY-REPL::*SELECTIONS*
+#?(with-input-from-string (in "3")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (block :block
+        (query-bind ((test (lambda () (return-from :block :returned))))
+          (paged-select '(1 2 3))))))
+=> :RETURNED
+,:stream nil
+
+; *QUERY-EVAL*
+#?(with-input-from-string (in "(print :hoge) 0")
+    (let ((*query-io* (make-two-way-stream in (make-broadcast-stream))))
+      (paged-select '(1 2 3))))
+:outputs "
+:HOGE "
+
+;;;; Side-Effects:
+
+;;;; Notes:
+; Key function is applied only printed page elements.
+#?(with-input-from-string (in "1")
+    (let ((*query-io* (make-two-way-stream in (make-broadcast-stream))))
+      (paged-select (loop :for i :below 20 :collect i)
+                    :key (lambda (x) (princ x) (force-output) x))))
+:outputs "012345678"
+
+; Additionaly such function is applied only once.
+#?(with-input-from-string (in (concatenate 'string
+                                           "0" ; <--- Choose #:NEXT.
+                                           " 1" ; <--- Choose #:PREV.
+                                           " 2")) ; <--- Select.
+    (let ((*query-io* (make-two-way-stream in (make-broadcast-stream))))
+      (paged-select (loop :for i :below 20 :collect i)
+                    :key (lambda (x) (princ x) (force-output) x))))
+:outputs "012345678910111213141516"
+
+;;;; Exceptional-Situations:
+
+(requirements-about <MAKE-SELECTION-FORM> :doc-type function :test equal)
+
+;;;; Description:
+
 #+syntax (<MAKE-SELECTION-FORM> clause block) ; => result
 
 ;;;; Arguments and Values:
