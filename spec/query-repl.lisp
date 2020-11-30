@@ -269,6 +269,78 @@ input> "
 
 ;;;; Exceptional-Situations:
 
+(requirements-about QUERY-CASE :doc-type function)
+
+;;;; Description:
+
+#+syntax (QUERY-CASE query &body clauses) ; => result
+
+;;;; Arguments and Values:
+
+; query := Form which print query message.
+
+; clause := (name lambda-list query-param* &body body)
+; name := symbol, otherwise error.
+#?(query-case () ("not symbol" ())) :signals error
+; Not evaluated.
+#?(query-case () ((intern "Not evaluated"))) :signals error
+; lambda-list := ordinary lambda list.
+#?(query-case () (name "not list")) :signals error
+; query-param := [ :report report-form | :interactive function-name ]
+; report-form := [ function-name | string ]
+; When report-form function-name is specified, such function should have API as (function (stream)).
+#?(query-case () (name () :report (formatter "not function name"))) :signals error
+; When string is specified, treated as (lambda (s) (format s string)).
+#?(with-input-from-string (in "0")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (query-case () (name () :report "Printed."))))
+:outputs "
+  0: [NAME] Printed.
+> "
+,:stream *query-io*
+; function-name := [ symbol | (cons (eql lambda)) ]
+; When interactive function is specified, such function should have API as (function () list).
+; Returned values are applied to LAMBDA-LIST and BODY is evaluated.
+#?(with-input-from-string (in "0")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (query-case ()
+        (name (a) :interactive (lambda () (list :returned))
+          a))))
+=> :RETURNED
+,:stream nil
+; body := implicit progn.
+
+; result := T
+
+;;;; Affected By:
+; QUERY-REPL::*SELECTIONS* internally.
+#?(with-input-from-string (in "test")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (block :block
+        (query-bind ((test (lambda () (return-from :block :return))))
+          (query-case ()
+            (a () :a))))))
+:outputs "
+  0: [A   ] A
+  1: [TEST] TEST
+> "
+,:stream *query-io*
+
+#?(with-input-from-string (in "test")
+    (let ((*query-io* (make-two-way-stream in *query-io*)))
+      (block :block
+        (query-bind ((test (lambda () (return-from :block :return))))
+          (query-case ()
+            (a () :a))))))
+=> :RETURN
+,:stream nil
+
+;;;; Side-Effects:
+
+;;;; Notes:
+
+;;;; Exceptional-Situations:
+
 #+syntax (<MAKE-SELECTION-FORM> clause block) ; => result
 
 ;;;; Arguments and Values:
