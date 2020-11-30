@@ -236,6 +236,9 @@
         paged-select))
 
 (defun paged-select (list &key (max 10) (key #'identity))
+  ;; CLISP needs runtime check.
+  (assert (typep list 'list))
+  (assert (typep max '(integer 3 *)))
   (unless list
     (return-from paged-select list))
   (do ((vector (coerce list 'vector))
