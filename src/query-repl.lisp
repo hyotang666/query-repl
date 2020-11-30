@@ -99,12 +99,18 @@
             (:no-error (read)
               (query-eval read))))))
 
-(defmacro query-bind (binds &body body)
+(defmacro query-bind (&whole whole binds &body body)
+  (check-bnf:check-bnf (:whole whole)
+    (((bind* binds) (name body-function param*))
+     (name symbol)
+     (body-function check-bnf:expression)
+     (param* query-param-key check-bnf:expression)
+     (query-param-key (member :report-function :interactive-function)))
+    ((body check-bnf:expression)))
   (flet ((<make-selection-form> (bind)
            (destructuring-bind
                (name function . rest)
                bind
-             (check-type name symbol)
              `(let ((function (coerce ,function 'function))
                     (reporter
                      (coerce
