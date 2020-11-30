@@ -139,26 +139,32 @@
          (query-repl)))))
 
 (defun <make-selection-form> (clause block)
-  (destructuring-bind
-      (name lambda-list &rest body)
-      clause
-    (do* ((list body (cdr body))
-          (first (car list) (car list))
-          (reporter)
-          (reader))
-         ((not (find first '(:report :interactive) :test #'eq))
-          `(,name (lambda ,lambda-list (return-from ,block (progn ,@list)))
-            :report-function
-            ,(typecase reporter
-               (string `(lambda (s) (format s ,reporter)))
-               (null `(lambda (s) (format s "~A" ',name)))
-               (otherwise `#',reporter))
-            :interactive-function
-            ,(when reader
-               `(lambda () (,reader)))))
-      (when (find first '(:report :interarctive))
-        (setf reporter (cadr list))
-        (setf list (cddr list))))))
+  (let (reporter reader (name (car clause)) (lambda-list (second clause)))
+    (labels ((rec (list)
+               (if (endp list)
+                   (finally list)
+                   (body (car list) (cdr list))))
+             (body (first rest)
+               (case first
+                 ((:report)
+                  (if rest
+                      (progn (setf reporter (car rest)) (rec (cdr rest)))
+                      (finally (cons first rest))))
+                 ((:interactive)
+                  (if rest
+                      (progn (setf reader `#',(car rest)) (rec (cdr rest)))
+                      (finally (cons first rest))))
+                 (otherwise (finally (cons first rest)))))
+             (finally (list)
+               `(,name
+                 (lambda ,lambda-list (return-from ,block (progn ,@list)))
+                 :report-function
+                 ,(typecase reporter
+                    (string `(lambda (s) (format s ,reporter)))
+                    (null `(lambda (s) (format s "~A" ',name)))
+                    (otherwise `#',reporter))
+                 :interactive-function ,reader)))
+      (rec (cddr clause)))))
 
 (defun pprint-query-case (stream exp)
   (funcall

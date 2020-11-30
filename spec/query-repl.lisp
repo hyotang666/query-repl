@@ -1,5 +1,6 @@
 (defpackage :query-repl.spec
-  (:use :cl :jingoh :query-repl))
+  (:use :cl :jingoh :query-repl)
+  (:import-from :query-repl #:<make-selection-form>))
 (in-package :query-repl.spec)
 (setup :query-repl)
 
@@ -267,4 +268,49 @@ input> "
 ;;;; Notes:
 
 ;;;; Exceptional-Situations:
+
+#+syntax (<MAKE-SELECTION-FORM> clause block) ; => result
+
+;;;; Arguments and Values:
+
+; clause := 
+
+; block := 
+
+; result := 
+
+;;;; Affected By:
+
+;;;; Side-Effects:
+
+;;;; Notes:
+
+;;;; Exceptional-Situations:
+
+;;;; Tests.
+#?(<make-selection-form> '(name ()) :block)
+=> (NAME (LAMBDA () (RETURN-FROM :BLOCK (PROGN)))
+         :REPORT-FUNCTION (LAMBDA (query-repl::S) (FORMAT query-repl::S "~A" 'NAME))
+         :INTERACTIVE-FUNCTION NIL)
+
+#?(<make-selection-form> '(name () :report fun-name-as-symbol) :block)
+=> (NAME (LAMBDA () (RETURN-FROM :BLOCK (PROGN)))
+         :REPORT-FUNCTION #'FUN-NAME-AS-SYMBOL
+         :INTERACTIVE-FUNCTION NIL)
+#?(<make-selection-form> '(name () :report (lambda (s) (format s "hoge"))) :block)
+=> (NAME (LAMBDA () (RETURN-FROM :BLOCK (PROGN)))
+         :REPORT-FUNCTION #'(LAMBDA (S) (FORMAT S "hoge"))
+         :INTERACTIVE-FUNCTION NIL)
+#?(<make-selection-form> '(name () :report "hoge") :block)
+=> (NAME (LAMBDA () (RETURN-FROM :BLOCK (PROGN)))
+         :REPORT-FUNCTION (LAMBDA (query-repl::S) (FORMAT query-repl::S "hoge"))
+         :INTERACTIVE-FUNCTION NIL)
+#?(<make-selection-form> '(name () :interactive (lambda () (list 0))) :block)
+=> (NAME (LAMBDA () (RETURN-FROM :BLOCK (PROGN)))
+         :REPORT-FUNCTION (LAMBDA (QUERY-REPL::S) (FORMAT QUERY-REPL::S "~A" 'NAME))
+         :INTERACTIVE-FUNCTION #'(LAMBDA () (LIST 0)))
+#?(<make-selection-form> '(name () :interactive) :block)
+=> (NAME (LAMBDA () (RETURN-FROM :BLOCK (PROGN :INTERACTIVE)))
+         :REPORT-FUNCTION (LAMBDA (QUERY-REPL::S) (FORMAT QUERY-REPL::S "~A" 'NAME))
+         :INTERACTIVE-FUNCTION NIL)
 
