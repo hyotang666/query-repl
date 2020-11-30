@@ -63,6 +63,7 @@
     (values-list results)))
 
 (defun query-prompt (&optional (*standard-output* *query-io*))
+  (assert (typep *standard-output* 'stream))
   (let ((selections *selections*))
     (when selections
       (loop :with max
