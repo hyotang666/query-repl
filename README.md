@@ -1,4 +1,4 @@
-# QUERY-REPL 3.0.0
+# QUERY-REPL 4.0.9
 ## What is this?
 REPL for user query.
 
@@ -16,8 +16,9 @@ It is not an exceptional situation.
 We should not use debugger.
 
 ## Usage
+For details, see [spec file.](spec/query-repl.lisp)
 ### `QUERY-CASE`
-The syntax is almost same with `cl:restart-case` except the first argument.
+The syntax is almost same with `cl:restart-case` except the first argument and :test keyword param.
 First argument should print query message.
 The return value of the first argument is discarded.
 
@@ -250,6 +251,10 @@ MIT
 SBCL
 
 ### Tested with
+* SBCL/2.0.10
+* CCL/1.12
+* ECL/20.4.24
+* CLISP/2.49
 
 ## Installation
 TODO
