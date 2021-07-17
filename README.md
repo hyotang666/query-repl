@@ -2,21 +2,25 @@
 ## What is this?
 REPL for user query.
 
-## Issue.
-Sometimes we need to get user input interactively.
-With standard common lisp `y-or-n-p`, `yes-or-no-p`, or `restart-case` with `invoke-restart` is used.
-But there are some issues.
+## Alternatives and differences.
 
-* `y-or-n-p` and `yes-or-no-p` is less powerful.
-* The debugger prints unneeded info for a query.
-* The debugger behavior is not portable.
+|             | [duologue] | [text-query] | query-repl |
+| ---         | ---------- | ------------ | ---------- |
+| Coloring    | \*         |              |            |
+| Default     | \*         |              |            |
+| Completion  | \*         |              |            |
+| Return some | \*         |              |            |
+| Validation  | \*         |              |            |
+| Timeout     |            | \*           |            |
+| REPL        |            |              | \*         |
+| Pagenation  |            |              | \*         |
 
-Querying is expected behavior.
-It is not an exceptional situation.
-We should not use debugger.
+[duologue]: https://github.com/mmontone/duologue
+[text-query]: https://common-lisp.net/project/asdf-packaging/text-query-latest.tar.gz
 
 ## Usage
 For details, see [spec file.](spec/query-repl.lisp)
+
 ### `QUERY-CASE`
 The syntax is almost same with `cl:restart-case` except the first argument and :test keyword param.
 First argument should print query message.
@@ -251,7 +255,7 @@ MIT
 SBCL
 
 ### Tested with
-* SBCL/2.0.10
+* SBCL/2.1.6
 * CCL/1.12
 * ECL/20.4.24
 * CLISP/2.49
