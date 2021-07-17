@@ -17,6 +17,8 @@
 
 (in-package :query-repl)
 
+(declaim (optimize speed))
+
 (defstruct selection
   (name nil :type symbol :read-only t)
   (report-function (error "Required") :type function :read-only t)
@@ -70,7 +72,7 @@
                   := (reduce #'max selections
                              :key (lambda (x)
                                     (length (string (selection-name x)))))
-            :for i :upfrom 0
+            :for i :of-type (integer 0 #.most-positive-fixnum) :upfrom 0
             :for selection :in selections
             :do (format t "~%~3D: [~VA] " i max (selection-name selection))
                 (funcall (selection-report-function selection)
@@ -204,13 +206,15 @@
       (pprint-logical-block (stream exp :prefix "(" :suffix ")")
         (pprint-exit-if-list-exhausted)
         (apply
-          (formatter
-           #.(concatenate 'string "~{~W~^ ~@_~:<~^~W~:>~}" ; pre.
-                          "~@[" ; if exists.
-                          " ~3I~_~{~W~^ ~@_~W~^ ~_~}" ; keys
-                          "~]" "~^ ~1I" ; if exists body.
-                          "~:*~:[~_~;~:@_~]" ; mandatory newline when keys.
-                          "~@{~W~^ ~:@_~}")) ; body.
+          (locally
+           (declare (optimize (speed 1)))
+           (formatter
+            #.(concatenate 'string "~{~W~^ ~@_~:<~^~W~:>~}" ; pre.
+                           "~@[" ; if exists.
+                           " ~3I~_~{~W~^ ~@_~W~^ ~_~}" ; keys
+                           "~]" "~^ ~1I" ; if exists body.
+                           "~:*~:[~_~;~:@_~]" ; mandatory newline when keys.
+                           "~@{~W~^ ~:@_~}"))) ; body.
           stream (parse-query-clause exp)))))
 
 (defun parse-query-clause (clause)
@@ -231,14 +235,17 @@
              (if (endp list)
                  (query-repl)
                  (query-bind ((select
-                                (lambda () (return-from select (car list)))
+                                (lambda ()
+                                  (declare (optimize (speed 1)))
+                                  (return-from select (car list)))
                                 :report-function (lambda (s)
-                                                   (format s "~S" (car list)))))
+                                                   (prin1 (car list) s))))
                    (rec (cdr list))))))
     (rec (reverse list))))
 
 (declaim
- (ftype (function (list &key (:max (integer 3 *)) (:key (or symbol function))))
+ (ftype (function
+         (list &key (:max (integer 3 #xFFFF)) (:key (or symbol function))))
         paged-select))
 
 (defun paged-select (list &key (max 10) (key #'identity))
@@ -254,17 +261,17 @@
        (length (length list))
        (index 0))
       (nil)
-    (unless index
-      (error "Internal error: Index is NIL."))
+    (declare (type (integer 0 #xFFFF) index))
     (labels ((query (start end cont)
-               (loop :for i :upfrom start :below end
+               (loop :for i :of-type fixnum :upfrom start :below end
                      :for (value exist?)
                           := (multiple-value-list (gethash i hash-table))
                      :if exist?
                        :collect value :into contents
                      :else
                        :collect (setf (gethash i hash-table)
-                                        (funcall key (aref vector i)))
+                                        (funcall (coerce key 'function)
+                                                 (aref vector i)))
                          :into contents
                      :finally (funcall cont contents)))
              (prev-index (index)
@@ -278,7 +285,10 @@
                    (cond
                      ((eq tag-prev selected) (setf index (prev-index index)))
                      ((eq tag-next selected) (setf index next))
-                     (t (return selected)))))))
+                     (t
+                      (locally
+                       (declare (optimize (speed 1)))
+                       (return selected))))))))
       (if (zerop index)
           (if (<= length max)
               (query index length (finaler))
