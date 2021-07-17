@@ -14,7 +14,9 @@
   ((:file "query-repl"))
   :author "SATO Shinichi"
   :license "MIT"
-  :description "REPL for user query.")
+  :description "REPL for user query."
+  :source-control (:git "git@github.com:hyotang666/query-repl")
+  :bug-tracker "https://github.com/hyotang666/query-repl/issues")
 
 ;;; These forms below are added by JINGOH.GENERATOR.
 ;; Ensure in ASDF for pretty printings.
