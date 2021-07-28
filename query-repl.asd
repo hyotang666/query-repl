@@ -2,11 +2,11 @@
 (in-package :asdf)
 (defsystem "query-repl"
   :version
-  "4.0.11"
+  "4.0.12"
   :depends-on
   (
    "check-bnf" ; BNF like syntax checker.
-   "alexandria" ; Public domain utilities.
+   "uiop" ; Utilities.
    )
   :pathname
   "src/"

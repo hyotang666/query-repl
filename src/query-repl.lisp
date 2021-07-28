@@ -159,7 +159,7 @@
 (defun <make-selection-form> (clause block)
   (let (reporter reader (name (car clause)) (lambda-list (second clause)))
     (multiple-value-bind (body decls)
-        (alexandria:parse-body (cddr clause))
+        (uiop:parse-body (cddr clause))
       (labels ((rec (list)
                  (if (endp list)
                      (finally list)
