@@ -248,7 +248,8 @@
          (list &key (:max (integer 3 #xFFFF)) (:key (or symbol function))))
         paged-select))
 
-(defun paged-select (list &key (max 10) (key #'identity))
+(defun paged-select
+       (list &key (max 10) (key #'identity) &aux (key (coerce key 'function)))
   ;; CLISP needs runtime check.
   (assert (typep list 'list))
   (assert (typep max '(integer 3 *)))
@@ -270,8 +271,7 @@
                        :collect value :into contents
                      :else
                        :collect (setf (gethash i hash-table)
-                                        (funcall (coerce key 'function)
-                                                 (aref vector i)))
+                                        (funcall key (aref vector i)))
                          :into contents
                      :finally (funcall cont contents)))
              (prev-index (index)
