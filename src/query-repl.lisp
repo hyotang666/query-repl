@@ -109,6 +109,14 @@
      (param* query-param-key check-bnf:expression)
      (query-param-key (member :report-function :interactive-function)))
     ((body check-bnf:expression)))
+  #-check-bnf
+  (mapc
+    (lambda (bind)
+      (check-type (car bind) symbol)
+      (loop :for (k) :on (cddr bind) :by #'cddr
+            :do (check-type k
+                            (member :report-function :interactive-function))))
+    binds)
   (flet ((<make-selection-form> (bind)
            (destructuring-bind
                (name function . rest)
@@ -147,6 +155,12 @@
      (restart-option* restart-option-key check-bnf:expression)
      (restart-option-key (member :interactive :report))
      (body check-bnf:expression)))
+  #-check-bnf
+  (mapc
+    (lambda (clause)
+      (check-type (car clause) symbol)
+      (check-type (second clause) list))
+    clauses)
   (let ((block (gensym "QUERY")))
     `(block ,block
        (query-bind ,(mapcar
