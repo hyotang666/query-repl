@@ -128,6 +128,7 @@ input> "
 
 ; When EXP is symbol and some selections are selected from QUERY-REPL::*SELECTION* by name
 ; a warning is signaled.
+#-abcl ; ABCL muffle warnings.
 #?(query-bind ((test (lambda () (princ :never)))
                (test2 (lambda () (princ :never))))
     (query-eval :test))
@@ -242,6 +243,7 @@ input> "
 => 0
 ,:stream nil
 
+#-abcl ; ABCL muffles warning.
 ; *QUERY-EVAL*
 ; When *QUERY-EVAL* is NIL, and meed #. dispatch macro
 ; warning is signaled.
