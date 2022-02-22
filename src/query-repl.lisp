@@ -259,6 +259,21 @@
 
 (declaim
  (ftype (function
+         (boolean (integer 0 #xFFFF) (integer 0 #xFFFF)
+          (mod #.most-positive-fixnum) simple-string)
+         (values simple-string &optional))
+        paged-prompt))
+
+(defun paged-prompt (print-pagep max-page index length prompt)
+  #+sbcl ; due to ratio.
+  (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+  (if print-pagep
+      (format nil "[~D/~D]~A" (ceiling (* max-page (/ (1+ index) length)))
+              max-page prompt)
+      prompt))
+
+(declaim
+ (ftype (function
          (list &key (:max (integer 3 #xFFFF)) (:key (or symbol function))
                (:print-page boolean)))
         paged-select))
@@ -272,25 +287,10 @@
   (assert (typep max '(integer 3 *)))
   (unless list
     (return-from paged-select list))
-  (do* ((vector (coerce list 'vector))
-        (hash-table (make-hash-table))
-        (tag-next '#:next)
-        (tag-prev '#:prev)
-        (length (length list))
-        (max-page (ceiling length (- max 2)))
-        (index 0)
-        (prompt *prompt*)
-        (*prompt* #0=(locally
-                      #+sbcl
-                      (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
-                      (if print-page
-                          (format nil "[~D/~D]~A"
-                                  (ceiling (* max-page (/ (1+ index) length)))
-                                  max-page prompt)
-                          prompt))
-                  #0#))
-       (nil)
-    (declare (type (integer 0 #xFFFF) index))
+  (prog* ((vector (coerce list 'vector)) (hash-table (make-hash-table))
+          (tag-next '#:next) (tag-prev '#:prev) (length (length list))
+          (max-page (ceiling length (- max 2))) (index 0) (prompt *prompt*))
+    (declare ((integer 0 #xFFFF) index))
     (labels ((query (start end cont)
                (loop :for i :of-type fixnum :upfrom start :below end
                      :for (value exist?)
@@ -309,23 +309,28 @@
                      new)))
              (finaler (&key next tags)
                (lambda (contents)
+                 (declare (optimize (safety 0)))
                  (let ((selected (select (nconc tags contents))))
                    (cond
                      ((eq tag-prev selected) (setf index (prev-index index)))
                      ((eq tag-next selected) (setf index next))
-                     (t
-                      (locally
-                       (declare (optimize (speed 1)))
-                       (return selected))))))))
-      (if (zerop index)
-          (if (<= length max)
-              (query index length (finaler))
-              (query index (1- max)
-                     (finaler :next (1- max) :tags (list tag-next))))
-          (if (<= index length)
-              (if (<= (- length index) (1- max))
-                  (query index length (finaler :tags (list tag-prev)))
-                  (query index (+ index (- max 2))
-                         (finaler :next (+ index (- max 2))
-                                  :tags (list tag-next tag-prev))))
-              (error "Internal error. Index over the length."))))))
+                     (t (return selected)))))))
+      (declare
+        (ftype (function ((integer 0 #xFFFF))
+                (values (integer 0 #xFFFF) &optional))
+               prev-index))
+      (loop :for *prompt*
+                 = (paged-prompt print-page max-page index length prompt)
+            :do (if (zerop index)
+                    (if (<= length max)
+                        (query index length (finaler))
+                        (query index (1- max)
+                               (finaler :next (1- max) :tags (list tag-next))))
+                    (if (<= index length)
+                        (if (<= (- length index) (1- max))
+                            (query index length
+                                   (finaler :tags (list tag-prev)))
+                            (query index (+ index (- max 2))
+                                   (finaler :next (+ index (- max 2))
+                                            :tags (list tag-next tag-prev))))
+                        (error "Internal error. Index over the length.")))))))
