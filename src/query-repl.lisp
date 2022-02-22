@@ -285,27 +285,25 @@
   (assert (typep max '(integer 3 *)))
   (unless list
     (return-from paged-select list))
-  (prog* ((vector (coerce list 'vector)) (hash-table (make-hash-table))
+  (prog* ((vector (coerce list 'vector)) (memo (make-hash-table))
           (tag-next '#:next) (tag-prev '#:prev) (length (length list))
           (max-page (ceiling length (- max 2))) (index 0) (prompt *prompt*))
     (declare ((integer 0 #xFFFF) index))
-    (labels ((query (start end cont)
+    (labels ((contents (start end)
                (loop :for i :of-type fixnum :upfrom start :below end
                      :for (value exist?)
-                          := (multiple-value-list (gethash i hash-table))
+                          := (multiple-value-list (gethash i memo))
                      :if exist?
-                       :collect value :into contents
+                       :collect value
                      :else
-                       :collect (setf (gethash i hash-table)
-                                        (funcall key (aref vector i)))
-                         :into contents
-                     :finally (funcall cont contents)))
+                       :collect (setf (gethash i memo)
+                                        (funcall key (aref vector i)))))
              (prev-index (index)
                (let ((new (- index (- max 2))))
                  (if (= 1 new)
                      0
                      new)))
-             (finaler (&key next tags)
+             (selector (&key next tags)
                (lambda (contents)
                  (declare (optimize (safety 0)))
                  (let ((selected (select (nconc tags contents))))
@@ -319,16 +317,21 @@
                prev-index))
       (loop :for *prompt*
                  = (paged-prompt print-page max-page index length prompt)
-            :do (if (zerop index)
-                    (if (<= length max)
-                        (query index length (finaler))
-                        (query index (1- max)
-                               (finaler :next (1- max) :tags (list tag-next))))
-                    (if (<= index length)
-                        (if (<= (- length index) (1- max))
-                            (query index length
-                                   (finaler :tags (list tag-prev)))
-                            (query index (+ index (- max 2))
-                                   (finaler :next (+ index (- max 2))
-                                            :tags (list tag-next tag-prev))))
+            :do (if (zerop index) ; at the first page.
+                    (if (<= length max) ; only have one page.
+                        (funcall (selector) (contents index length))
+                        ;; having some pages. We needs the next tag.
+                        (funcall
+                          (selector :next (1- max) :tags (list tag-next))
+                          (contents index (1- max))))
+                    (if (<= index length) ; not overflow.
+                        (if (<= (- length index) (1- max)) ; at last page?
+                            ;; We needs the prev tag.
+                            (funcall (selector :tags (list tag-prev))
+                                     (contents index length))
+                            ;; Not in last page. We needs both prev and next tags.
+                            (funcall
+                              (selector :next (+ index (- max 2))
+                                        :tags (list tag-next tag-prev))
+                              (contents index (+ index (- max 2)))))
                         (error "Internal error. Index over the length.")))))))
