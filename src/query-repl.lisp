@@ -220,15 +220,13 @@
       (pprint-logical-block (stream exp :prefix "(" :suffix ")")
         (pprint-exit-if-list-exhausted)
         (apply
-          (locally
-           (declare (optimize (speed 1)))
-           (formatter
-            #.(concatenate 'string "~{~W~^ ~@_~:<~^~W~:>~}" ; pre.
-                           "~@[" ; if exists.
-                           " ~3I~_~{~W~^ ~@_~W~^ ~_~}" ; keys
-                           "~]" "~^ ~1I" ; if exists body.
-                           "~:*~:[~_~;~:@_~]" ; mandatory newline when keys.
-                           "~@{~W~^ ~:@_~}"))) ; body.
+          (formatter
+           #.(concatenate 'string "~{~W~^ ~@_~:<~^~W~:>~}" ; pre.
+                          "~@[" ; if exists.
+                          " ~3I~_~{~W~^ ~@_~W~^ ~_~}" ; keys
+                          "~]" "~^ ~1I" ; if exists body.
+                          "~:*~:[~_~;~:@_~]" ; mandatory newline when keys.
+                          "~@{~W~^ ~:@_~}")) ; body.
           stream (parse-query-clause exp)))))
 
 (defun parse-query-clause (clause)
