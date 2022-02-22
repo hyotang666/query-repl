@@ -259,23 +259,37 @@
 
 (declaim
  (ftype (function
-         (list &key (:max (integer 3 #xFFFF)) (:key (or symbol function))))
+         (list &key (:max (integer 3 #xFFFF)) (:key (or symbol function))
+               (:print-page boolean)))
         paged-select))
 
 (defun paged-select
-       (list &key (max 10) (key #'identity) &aux (key (coerce key 'function)))
+       (list
+        &key (max 10) (key #'identity) print-page
+        &aux (key (coerce key 'function)))
   ;; CLISP needs runtime check.
   (assert (typep list 'list))
   (assert (typep max '(integer 3 *)))
   (unless list
     (return-from paged-select list))
-  (do ((vector (coerce list 'vector))
-       (hash-table (make-hash-table))
-       (tag-next '#:next)
-       (tag-prev '#:prev)
-       (length (length list))
-       (index 0))
-      (nil)
+  (do* ((vector (coerce list 'vector))
+        (hash-table (make-hash-table))
+        (tag-next '#:next)
+        (tag-prev '#:prev)
+        (length (length list))
+        (max-page (ceiling length (- max 2)))
+        (index 0)
+        (prompt *prompt*)
+        (*prompt* #0=(locally
+                      #+sbcl
+                      (declare (sb-ext:muffle-conditions sb-ext:compiler-note))
+                      (if print-page
+                          (format nil "[~D/~D]~A"
+                                  (ceiling (* max-page (/ (1+ index) length)))
+                                  max-page prompt)
+                          prompt))
+                  #0#))
+       (nil)
     (declare (type (integer 0 #xFFFF) index))
     (labels ((query (start end cont)
                (loop :for i :of-type fixnum :upfrom start :below end
