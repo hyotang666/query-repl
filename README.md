@@ -255,7 +255,7 @@ MIT
 SBCL
 
 ### Tested with
-* SBCL/2.1.7
+* SBCL/2.2.2
 * CCL/1.12.1
 * CLISP/2.49
 * ECL/21.2.1
@@ -264,4 +264,8 @@ SBCL
 * ABCL/1.8.0
 
 ## Installation
-TODO
+Quicklisp supported.
+
+```lisp
+(ql:quickload :query-repl)
+```
