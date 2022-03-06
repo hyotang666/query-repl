@@ -88,18 +88,21 @@
 
 (defun query-repl ()
   (loop (query-prompt)
-        (multiple-value-call
-            (lambda (&rest args)
-              (dolist (arg args)
-                (print arg *query-io*)
-                (force-output *query-io*)))
-          (handler-case (query-read)
-            (condition (condition)
-              (if *query-eval*
-                  (error condition)
-                  (progn (warn (princ-to-string condition)) (values))))
-            (:no-error (read)
-              (query-eval read))))))
+        (restart-case (multiple-value-call
+                          (lambda (&rest args)
+                            (dolist (arg args)
+                              (print arg *query-io*)
+                              (force-output *query-io*)))
+                        (handler-case (query-read)
+                          (condition (condition)
+                            (if *query-eval*
+                                (error condition)
+                                (progn
+                                 (warn (princ-to-string condition))
+                                 (values))))
+                          (:no-error (read)
+                            (query-eval read))))
+          (continue () :report "Return to query repl."))))
 
 (defmacro query-bind (&whole whole binds &body body)
   (check-bnf:check-bnf (:whole whole)
